@@ -1,5 +1,5 @@
 
-name: Prepare XiaoZhi source
+name: Prepare Otto Desk source
 
 on:
   workflow_dispatch:
@@ -13,27 +13,37 @@ permissions:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract source ZIP
+      - name: Extract XiaoZhi source
         run: |
           unzip -q xiaozhi-esp32-main.zip -d source
           test -f source/xiaozhi-esp32-main/scripts/build.py
-          echo "XiaoZhi source extracted successfully"
 
-      - name: List available boards
+      - name: Extract Otto Desk overlay
         run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
+          unzip -q otto-desk-stage2-source-overlay.zip -d overlay
+          test -d overlay/otto-desk-stage2-work/main/boards/otto-desk
 
-          root = Path("source/xiaozhi-esp32-main/main/boards")
-          for path in sorted(root.rglob("config.json")):
-              try:
-                  data = json.loads(path.read_text())
-                  print(f"{path.parent}: {data.get('type', 'unknown')}")
-              except Exception as e:
-                  print(f"Could not read {path}: {e}")
-          PY
+      - name: Apply Otto Desk overlay
+        run: |
+          cp -a overlay/otto-desk-stage2-work/main/. \
+            source/xiaozhi-esp32-main/main/
+
+      - name: Verify Otto Desk registration
+        run: |
+          cd source/xiaozhi-esp32-main
+          grep -q "BOARD_TYPE_OTTO_DESK" main/Kconfig.projbuild
+          grep -q 'set(BOARD_DIR "otto-desk")' main/CMakeLists.txt
+          test -f main/boards/otto-desk/config.h
+          test -f main/boards/otto-desk/otto_emoji_display.cc
+          test -f main/boards/otto-desk/otto_desk_controller_stub.cc
+          echo "Otto Desk source overlay applied successfully."
+
+      - name: Show hardware configuration
+        run: |
+          cd source/xiaozhi-esp32-main
+          grep -n "OTTO_DESK_SERVO" main/boards/otto-desk/config.h
