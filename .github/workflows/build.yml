@@ -1,0 +1,39 @@
+
+name: Prepare XiaoZhi source
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract source ZIP
+        run: |
+          unzip -q xiaozhi-esp32-main.zip -d source
+          test -f source/xiaozhi-esp32-main/scripts/build.py
+          echo "XiaoZhi source extracted successfully"
+
+      - name: List available boards
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("source/xiaozhi-esp32-main/main/boards")
+          for path in sorted(root.rglob("config.json")):
+              try:
+                  data = json.loads(path.read_text())
+                  print(f"{path.parent}: {data.get('type', 'unknown')}")
+              except Exception as e:
+                  print(f"Could not read {path}: {e}")
+          PY
