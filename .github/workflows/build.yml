@@ -1,5 +1,5 @@
 
-name: Prepare Otto Desk source
+name: Build Otto Desk
 
 on:
   workflow_dispatch:
@@ -11,39 +11,44 @@ permissions:
   contents: read
 
 jobs:
-  prepare:
+  build:
+    name: Build Otto Desk firmware
     runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v6.1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Extract XiaoZhi source
+        shell: bash
         run: |
           unzip -q xiaozhi-esp32-main.zip -d source
           test -f source/xiaozhi-esp32-main/scripts/build.py
 
       - name: Extract Otto Desk overlay
+        shell: bash
         run: |
           unzip -q otto-desk-stage2-source-overlay.zip -d overlay
-          test -d overlay/otto-desk-stage2-work/main/boards/otto-desk
+          test -f overlay/otto-desk-stage2-work/main/boards/otto-desk/config.json
 
       - name: Apply Otto Desk overlay
+        shell: bash
         run: |
           cp -a overlay/otto-desk-stage2-work/main/. \
             source/xiaozhi-esp32-main/main/
 
-      - name: Verify Otto Desk registration
+      - name: Build firmware
+        shell: bash
         run: |
+          source "$IDF_PATH/export.sh"
           cd source/xiaozhi-esp32-main
-          grep -q "BOARD_TYPE_OTTO_DESK" main/Kconfig.projbuild
-          grep -q 'set(BOARD_DIR "otto-desk")' main/CMakeLists.txt
-          test -f main/boards/otto-desk/config.h
-          test -f main/boards/otto-desk/otto_emoji_display.cc
-          test -f main/boards/otto-desk/otto_desk_controller_stub.cc
-          echo "Otto Desk source overlay applied successfully."
+          python scripts/build.py otto-desk --name otto-desk
 
-      - name: Show hardware configuration
-        run: |
-          cd source/xiaozhi-esp32-main
-          grep -n "OTTO_DESK_SERVO" main/boards/otto-desk/config.h
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: otto-desk-firmware
+          path: source/xiaozhi-esp32-main/build/merged-binary.bin
+          if-no-files-found: error
