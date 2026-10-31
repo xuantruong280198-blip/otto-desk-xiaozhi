@@ -6,7 +6,7 @@ on:
     branches:
       - stage6-github-build
     paths:
-      - - 'otto-desk-stage6-upload-one-zip.zip'
+      - - 'otto-desk-stage6-upload-one-zip-1.zip'
       - '.github/workflows/build-otto-from-zip.yml'
 
 permissions:
@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ZIP_FILE="otto-desk-stage6-upload-one-zip.zip"
+          ZIP_FILE="otto-desk-stage6-upload-one-zip-1.zip"
           test -s "$ZIP_FILE"
           mkdir -p /tmp/otto-source
           unzip -q "$ZIP_FILE" -d /tmp/otto-source
