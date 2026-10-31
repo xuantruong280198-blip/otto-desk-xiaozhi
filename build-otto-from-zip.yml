@@ -1,0 +1,62 @@
+name: Build Otto Desk firmware from ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - stage6-github-build
+    paths:
+      - 'otto-desk-stage6-github-build-package.zip'
+      - '.github/workflows/build-otto-from-zip.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Extract source and build (ESP-IDF 6.1)
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:release-v6.1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Extract uploaded source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="otto-desk-stage6-github-build-package.zip"
+          test -s "$ZIP_FILE"
+          mkdir -p /tmp/otto-source
+          unzip -q "$ZIP_FILE" -d /tmp/otto-source
+          test -f /tmp/otto-source/scripts/build.py
+          test -f /tmp/otto-source/main/CMakeLists.txt
+          cp -a /tmp/otto-source/. "$GITHUB_WORKSPACE/"
+          test -f scripts/build.py
+          echo "Source ZIP extracted successfully."
+
+      - name: Run build-script unit tests
+        shell: bash
+        run: |
+          python -m unittest scripts.tests.test_build.BoardMenuTests.test_board_menu_is_sorted_and_matches_cmake -v
+          python -m unittest scripts.tests.test_build.BoardSourceTests -v
+
+      - name: Build Otto Desk firmware
+        shell: bash
+        run: |
+          source "$IDF_PATH/export.sh"
+          python scripts/build.py otto-desk --name otto-desk --language en-US --wake-word hiesp
+
+      - name: Verify merged firmware image
+        shell: bash
+        run: |
+          test -s build/merged-binary.bin
+          stat -c 'merged-binary.bin: %s bytes' build/merged-binary.bin
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: otto-desk-firmware-${{ github.sha }}
+          path: build/merged-binary.bin
+          if-no-files-found: error
