@@ -24,7 +24,7 @@ jobs:
       - name: Extract final Otto Desk source
         shell: bash
         run: |
-          unzip -q otto-desk-final-source-handoff.zip -d source
+          unzip -q otto-desk-final-source-handoff-fixed.zip -d source
           test -f source/xiaozhi-esp32-main/scripts/build.py
           test -f source/xiaozhi-esp32-main/main/boards/otto-desk/config.json
 
