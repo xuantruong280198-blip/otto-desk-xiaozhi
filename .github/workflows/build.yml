@@ -15,36 +15,31 @@ jobs:
     name: Build Otto Desk firmware
     runs-on: ubuntu-latest
     container:
-      image: espressif/idf:v6.1
+      image: espressif/idf:release-v6.1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract XiaoZhi source
+      - name: Extract final Otto Desk source
         shell: bash
         run: |
-          unzip -q xiaozhi-esp32-main.zip -d source
+          unzip -q otto-desk-final-source-handoff.zip -d source
           test -f source/xiaozhi-esp32-main/scripts/build.py
-
-      - name: Extract Otto Desk overlay
-        shell: bash
-        run: |
-          unzip -q otto-desk-stage2-source-overlay.zip -d overlay
-          test -f overlay/otto-desk-stage2-work/main/boards/otto-desk/config.json
-
-      - name: Apply Otto Desk overlay
-        shell: bash
-        run: |
-          cp -a overlay/otto-desk-stage2-work/main/. \
-            source/xiaozhi-esp32-main/main/
+          test -f source/xiaozhi-esp32-main/main/boards/otto-desk/config.json
 
       - name: Build firmware
         shell: bash
         run: |
           source "$IDF_PATH/export.sh"
           cd source/xiaozhi-esp32-main
-          python scripts/build.py otto-desk --name otto-desk
+          python scripts/build.py otto-desk --name otto-desk --language en-US --wake-word hiesp
+
+      - name: Verify firmware
+        shell: bash
+        run: |
+          test -s source/xiaozhi-esp32-main/build/merged-binary.bin
+          stat -c 'Firmware size: %s bytes' source/xiaozhi-esp32-main/build/merged-binary.bin
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
